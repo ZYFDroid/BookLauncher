@@ -1,5 +1,6 @@
 package com.zy.myapplication.epub;
 
+import android.content.Context;
 import android.text.TextUtils;
 
 import com.zy.myapplication.utils.FileUtils;
@@ -24,6 +25,11 @@ public class ReadEpubHeadInfo {
      * 默认解压后进行暂存的地址
      */
     private static String SAVE_INFO_PATH = "/sdcard/cache/";
+
+    public static void setCachePath(Context ctx){
+        SAVE_INFO_PATH = ctx.getCacheDir().getAbsolutePath()+"/cache/";
+        SAVE_IMAGE_PATH = ctx.getCacheDir().getAbsolutePath()+"/result/";
+    }
 
     /**
      * 默认图片存放路径

@@ -31,6 +31,46 @@
 
     <GridView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
         android:id="@+id/gridView1" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="#000"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:layout_height="70dp">
+
+        <Button
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:onClick="onAppPageUp"
+            android:text="&lt;"
+            android:textSize="40sp"
+            android:background="@drawable/button"/>
+
+        <TextView
+            android:layout_weight="1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#000"
+            android:id="@+id/txtAppPageInfo"
+            android:textSize="20sp"
+            android:gravity="center"
+            android:text="第 0/0 页"/>
+
+        <Button
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:onClick="onAppPageDn"
+            android:text="&gt;"
+            android:textSize="40sp"
+            android:background="@drawable/button"/>
+    </LinearLayout>
 </LinearLayout>

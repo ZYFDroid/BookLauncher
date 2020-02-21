@@ -3,7 +3,6 @@ package com.tolino.custom.booklauncher;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.app.StatusBarManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -19,7 +18,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
+import android.os.Handler;
 import android.provider.Settings;
 import android.text.Layout;
 import android.text.StaticLayout;
@@ -31,8 +30,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.AbsListView;
 import android.widget.BaseAdapter;
-import android.widget.Button;
 import android.widget.GridView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -41,6 +40,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.tolino.custom.booklauncher.utils.AndroidUtils;
 import com.tolino.custom.booklauncher.utils.DBUtils;
 import com.zy.myapplication.epub.BookModel;
 import com.zy.myapplication.epub.ReadEpubHeadInfo;
@@ -99,11 +99,43 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        cacheCoverPath = getFilesDir().getAbsolutePath();
         DBUtils.init(getApplicationContext());
         setContentView(R.layout.activity_launcher);
+        ReadEpubHeadInfo.setCachePath(this);
         initMainPage();
-        initBookPage();
-        initAppPage();
+        postInitBookPage();
+        postInitAppPage();
+    }
+
+    Handler hWnd = new Handler();
+
+    Runnable postInitBookPageWaiter = new Runnable() {
+        @Override
+        public void run() {
+            if(findViewById(R.id.gridBook).getWidth()!=0){
+                initBookPage();
+                return;
+            }
+            hWnd.postDelayed(postInitBookPageWaiter,200);
+        }
+    };
+    void postInitBookPage(){
+        hWnd.postDelayed(postInitBookPageWaiter,200);
+    }
+
+    Runnable postInitAppPageWaiter = new Runnable() {
+        @Override
+        public void run() {
+            if(findViewById(R.id.gridView1).getWidth()!=0){
+                initAppPage();
+                return;
+            }
+            hWnd.postDelayed(postInitAppPageWaiter,200);
+        }
+    };
+    void postInitAppPage(){
+        hWnd.postDelayed(postInitAppPageWaiter,200);
     }
 
     @Override
@@ -163,14 +195,14 @@ public class LauncherActivity extends Activity {
         } catch (Settings.SettingNotFoundException e) {
             e.printStackTrace();
         }
-
+        loadRecentBook();
     }
 
-    int[] pages = {R.id.page1,R.id.page2,R.id.page3};
+    int[] viewpages = {R.id.page1,R.id.page2,R.id.page3};
     public void onTabClick(View view) {
         int index = Integer.parseInt(view.getTag().toString());
-        for(int i=0;i<pages.length;i++){
-            showHide(pages[i],index==i);
+        for(int i = 0; i< viewpages.length; i++){
+            showHide(viewpages[i],index==i);
         }
     }
 
@@ -183,9 +215,7 @@ public class LauncherActivity extends Activity {
     }
 
     void loadRecentBook(){
-        if(!canOperate()){
-            return;
-        }
+
         List<DBUtils.BookEntry> recents = DBUtils.queryBooks("type=? order by lastopen desc limit 3 offset 0", ""+DBUtils.BookEntry.TYPE_BOOK);
         if(recents.size()>0){
             ((ImageButton)findViewById(R.id.recentBook1)).setImageBitmap(getCover(recents.get(0)));
@@ -248,21 +278,18 @@ public class LauncherActivity extends Activity {
     public DBUtils.BookEntry currentDictionary;
 
     void initBookPage(){
-        if(!canOperate()){
-            return;
-        }
-        cacheCoverPath = getFilesDir().getAbsolutePath();
+
         cd(DBUtils.BookEntry.ROOT_UUID);
     }
 
 
+    int currentBookPage = 0;
+    int totalBookPage = 1;
     public List<DBUtils.BookEntry> lsResult = null;
 
     void cd(String uuid){
-        if(!canOperate()){
-            return;
-        }
         currentDictionary = DBUtils.queryBooks("uuid=?", uuid).get(0);
+        Log.d(TAG, "cd: "+currentDictionary.getDisplayName()+" - "+currentDictionary.getUUID());
         ls();
     }
 
@@ -292,61 +319,123 @@ public class LauncherActivity extends Activity {
     }
 
     void ls(){
-        if(!canOperate()){
-            return;
-        }
         lsResult = DBUtils.queryBooks("parent_uuid=? order by display_name",currentDictionary.getUUID());
         Log.d(TAG, "ls: Got "+lsResult.size()+" entries.");
+        totalBookPage = lsResult.size() / BOOK_PER_PAGE;
+        if(lsResult.size() % BOOK_PER_PAGE != 0){
+            totalBookPage++;
+        }
+        if(totalBookPage ==0){
+            totalBookPage++;}
+        currentBookPage =0;
+        showBookPage(currentBookPage);
+    }
+
+    void showBookPage(int pageId){
         ((TextView)findViewById(R.id.txtBookshelfName)).setText(currentDictionary.getDisplayName());
         GridView gridView = (GridView) findViewById(R.id.gridBook);
-        BaseAdapter adapter = new BaseAdapter()
-        {
-            @Override
-            public View getView(int position, View convertView, ViewGroup parent)
-            {
-                LinearLayout layout;
-                BookListViewHolder holder = new BookListViewHolder();
-                if(convertView == null)
-                {
-                    LayoutInflater inflater = getLayoutInflater();
-                    layout = (LinearLayout) inflater.inflate(R.layout.adapter_books, null);
-                    holder.viewImg = (ImageView) layout.findViewById(R.id.imageView1);
-                    holder.viewName = (TextView) layout.findViewById(R.id.textView1);
-                    layout.setTag(holder);
-                }
-                else
-                {
-                    layout = (LinearLayout) convertView;
-                    holder = (BookListViewHolder) layout.getTag();
-                }
-                DBUtils.BookEntry bookEntry = (DBUtils.BookEntry) getItem(position);
-                holder.viewName.setText(bookEntry.getDisplayName());
-                holder.viewImg.setImageBitmap(getCover(bookEntry));
-                layout.setClickable(true);
-                layout.setOnClickListener(new BookClicker(bookEntry));
-                return layout;
-            }
-
-            @Override
-            public long getItemId(int position)
-            {
-                return position;
-            }
-
-            @Override
-            public Object getItem(int position)
-            {
-                return lsResult.get(position);
-            }
-
-            @Override
-            public int getCount()
-            {
-                return lsResult.size();
-            }
-        };
+        BookAdapter adapter = new BookAdapter(lsResult, currentBookPage *BOOK_PER_PAGE,BOOK_PER_PAGE);
         gridView.setAdapter(adapter);
-        gridView.setNumColumns(3);
+        gridView.setNumColumns(BOOK_COL);
+        ((TextView)findViewById(R.id.txtBookPageInfo)).setText("第 "+(currentBookPage +1)+"/"+ totalBookPage +" 页");
+    }
+
+    private static int BOOK_PER_PAGE = 6;
+    private static int BOOK_ROW = 2;
+    private static int BOOK_COL = 3;
+
+    public void onBookPageUp(View view) {
+        if(currentBookPage >0){
+            currentBookPage--;}
+        showBookPage(currentBookPage);
+    }
+
+    public void onBookPageDn(View view) {
+        if(currentBookPage < totalBookPage -1){
+            currentBookPage++;}
+        showBookPage(currentBookPage);
+    }
+
+    class BookAdapter extends BaseAdapter{
+        List<DBUtils.BookEntry>  adapterList;
+        int offset,len;
+
+        public BookAdapter(List<DBUtils.BookEntry> adapterList, int offset, int len) {
+            this.adapterList = adapterList;
+            this.offset = offset;
+            this.len = len;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent)
+        {
+            LinearLayout layout;
+            BookListViewHolder holder = new BookListViewHolder();
+            if(convertView == null)
+            {
+                LayoutInflater inflater = getLayoutInflater();
+                layout = (LinearLayout) inflater.inflate(R.layout.adapter_books, null);
+                holder.viewImg = (ImageView) layout.findViewById(R.id.imageView1);
+                holder.viewName = (TextView) layout.findViewById(R.id.textView1);
+                layout.setTag(holder);
+            }
+            else
+            {
+                layout = (LinearLayout) convertView;
+                holder = (BookListViewHolder) layout.getTag();
+            }
+            DBUtils.BookEntry bookEntry = (DBUtils.BookEntry) getItem(position);
+            holder.viewName.setText(bookEntry.getDisplayName());
+            holder.viewImg.setImageBitmap(getCover(bookEntry));
+
+            int measureWidth = findViewById(R.id.gridBook).getWidth() / BOOK_COL;
+            int measureHeight = findViewById(R.id.gridBook).getHeight() / BOOK_ROW-10;
+
+            int[] textSize = AndroidUtils.measureView(holder.viewName);
+            int textHeight = textSize[1];
+
+            int imgHeight = measureHeight - textHeight -10;
+            int imgWidth = imgHeight * 2 / 3;
+
+            if(imgWidth > measureWidth){
+                imgHeight = imgHeight * measureWidth / imgWidth;
+                imgWidth = imgWidth / imgWidth * measureWidth;
+            }
+
+            holder.viewImg.getLayoutParams().width = imgWidth;
+            holder.viewImg.getLayoutParams().height = imgHeight;
+
+
+            if(layout.getLayoutParams()==null) {
+                AbsListView.LayoutParams param = new AbsListView.LayoutParams(measureWidth, measureHeight);
+                layout.setLayoutParams(param);
+            }else{
+                layout.getLayoutParams().height = measureHeight;
+                layout.getLayoutParams().width = measureWidth;
+            }
+            layout.setOnClickListener(new BookClicker(bookEntry));
+
+            return layout;
+        }
+
+        @Override
+        public long getItemId(int position)
+        {
+            return position;
+        }
+
+        @Override
+        public Object getItem(int position)
+        {
+            return adapterList.get(position+offset);
+        }
+
+        @Override
+        public int getCount()
+        {
+            int leftSize = (lsResult.size() - offset);
+            return leftSize > len ? len : leftSize;
+        }
     }
 
     public void onBooksGoBack(View view) {
@@ -385,10 +474,12 @@ public class LauncherActivity extends Activity {
 
         public BookClicker(DBUtils.BookEntry entry) {
             this.entry = entry;
+
         }
 
         @Override
         public void onClick(View v) {
+            Log.d(TAG, "BookClicked: "+entry.getDisplayName());
             if(entry.getType()== DBUtils.BookEntry.TYPE_FOLDER){
                 cd(entry.getUUID());
             }
@@ -666,6 +757,7 @@ public class LauncherActivity extends Activity {
     private HashMap<String, Object> hashMap = null;
 
     public void onReloadApp(View view) {
+        loadapp();
         loadPage();
     }
 
@@ -736,83 +828,129 @@ public class LauncherActivity extends Activity {
     }
 
     void loadPage(){
-        loadapp();
+        ((TextView)findViewById(R.id.txtAppPageInfo)).setText("第 "+(currentAppPage +1)+"/"+ totalAppPage +" 页");
         GridView gridView = (GridView) findViewById(R.id.gridView1);
-        BaseAdapter adapter = new BaseAdapter()
-        {
-
-            @Override
-            public View getView(int position, View convertView, ViewGroup parent)
-            {
-                LinearLayout layout;
-                AppListViewHolder holder = new AppListViewHolder();
-                if(convertView == null)
-                {
-                    LayoutInflater inflater = getLayoutInflater();
-                    layout = (LinearLayout) inflater.inflate(R.layout.adapter_app, null);
-
-                    holder.viewImg = (ImageView) layout.findViewById(R.id.imageView1);
-                    holder.viewName = (TextView) layout.findViewById(R.id.textView1);
-                    layout.setTag(holder);
-                }
-                else
-                {
-                    layout = (LinearLayout) convertView;
-                    holder = (AppListViewHolder) layout.getTag();
-                }
-
-                ResolveInfo info = mApps.get(position);
-                holder.viewImg.setImageDrawable(info.activityInfo.loadIcon(getPackageManager()));
-                holder.viewName.setText(info.activityInfo.loadLabel(getPackageManager()).toString());
-
-                Intent launchIntent = null;
-                try{
-                    Intent intent = new Intent();
-                    ComponentName comp = new ComponentName( info.activityInfo.packageName, info.activityInfo.name);
-                    intent.setComponent(comp);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    launchIntent = intent;
-                }catch (Exception ex){
-                    ex.printStackTrace();
-                }
-
-                layout.setClickable(true);
-                layout.setOnClickListener(new IntentClicker(launchIntent,holder.viewName.getText().toString()));
-                layout.setOnLongClickListener(new InfoPresser(holder.viewName.getText().toString(),info.activityInfo.packageName));
-                return layout;
-            }
-
-            @Override
-            public long getItemId(int position)
-            {
-                return position;
-            }
-
-            @Override
-            public Object getItem(int position)
-            {
-                return mApps.get(position);
-            }
-
-            @Override
-            public int getCount()
-            {
-                return mApps.size();
-            }
-        };
+        BaseAdapter adapter = new AppAdapter(currentAppPage * APP_PER_PAGE,APP_PER_PAGE);
         gridView.setAdapter(adapter);
-        gridView.setNumColumns(5);
+        gridView.setNumColumns(APP_COL);
     }
+
+    private static int APP_PER_PAGE = 16;
+    private static int APP_ROW = 4;
+    private static int APP_COL = 4;
+
     private void loadapp()
     {
         Intent intent = new Intent(Intent.ACTION_MAIN,null);
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
         mApps = getPackageManager().queryIntentActivities(intent, 0);
+        currentAppPage = 0;
+
+        totalAppPage = mApps.size() / APP_PER_PAGE;
+        if(mApps.size() % APP_PER_PAGE != 0){
+            totalAppPage++;
+        }
+        if(totalAppPage ==0){
+            totalAppPage++;}
+        currentAppPage =0;
     }
     void initAppPage(){
+        loadapp();
         loadPage();
     }
 
+    public void onAppPageUp(View view) {
+        if(currentAppPage >0){
+            currentAppPage--;}
+        loadPage();
+    }
+
+    public void onAppPageDn(View view) {
+        if(currentAppPage < totalAppPage -1){
+            currentAppPage++;}
+        loadPage();
+    }
+
+    int currentAppPage = 0;
+    int totalAppPage = 1;
+
+    class AppAdapter extends BaseAdapter{
+        int offset,len;
+        public AppAdapter(int offset, int len) {
+            this.offset = offset;
+            this.len = len;
+        }
+
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent)
+        {
+            LinearLayout layout;
+            AppListViewHolder holder = new AppListViewHolder();
+            if(convertView == null)
+            {
+                LayoutInflater inflater = getLayoutInflater();
+                layout = (LinearLayout) inflater.inflate(R.layout.adapter_app, null);
+
+                holder.viewImg = (ImageView) layout.findViewById(R.id.imageView1);
+                holder.viewName = (TextView) layout.findViewById(R.id.textView1);
+                layout.setTag(holder);
+            }
+            else
+            {
+                layout = (LinearLayout) convertView;
+                holder = (AppListViewHolder) layout.getTag();
+            }
+
+            ResolveInfo info = (ResolveInfo) getItem(position);
+            holder.viewImg.setImageDrawable(info.activityInfo.loadIcon(getPackageManager()));
+            holder.viewName.setText(info.activityInfo.loadLabel(getPackageManager()).toString());
+
+            Intent launchIntent = null;
+            try{
+                Intent intent = new Intent();
+                ComponentName comp = new ComponentName( info.activityInfo.packageName, info.activityInfo.name);
+                intent.setComponent(comp);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                launchIntent = intent;
+            }catch (Exception ex){
+                ex.printStackTrace();
+            }
+
+            layout.setClickable(true);
+            layout.setOnClickListener(new IntentClicker(launchIntent,holder.viewName.getText().toString()));
+            layout.setOnLongClickListener(new InfoPresser(holder.viewName.getText().toString(),info.activityInfo.packageName));
+            int measureWidth = findViewById(R.id.gridView1).getWidth() / APP_COL;
+            int measureHeight = findViewById(R.id.gridView1).getHeight() / APP_ROW-10;
+            if(layout.getLayoutParams()==null) {
+                AbsListView.LayoutParams param = new AbsListView.LayoutParams(measureWidth, measureHeight);
+                layout.setLayoutParams(param);
+            }else{
+                layout.getLayoutParams().height = measureHeight;
+                layout.getLayoutParams().width = measureWidth;
+            }
+            return layout;
+        }
+
+        @Override
+        public long getItemId(int position)
+        {
+            return position;
+        }
+
+        @Override
+        public Object getItem(int position)
+        {
+            return mApps.get(position + offset);
+        }
+
+        @Override
+        public int getCount()
+        {
+            int leftSize = (mApps.size() - offset);
+            return leftSize > len ? len : leftSize;
+        }
+    }
 
     //endregion
 }

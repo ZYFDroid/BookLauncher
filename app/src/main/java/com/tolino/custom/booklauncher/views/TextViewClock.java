@@ -66,7 +66,6 @@ public class TextViewClock extends TextView {
                 setText(sdf1.format(d));
                 hWnd.postDelayed(this,1000);
             }
-            Log.d(TAG, "run: update time");
 
         }
     };
