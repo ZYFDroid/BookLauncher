@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#fff">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:orientation="horizontal">
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="主页"
+            android:background="@drawable/btn_tab"
+            android:textAppearance="@android:style/TextAppearance.Large"
+            android:textStyle="bold"
+            android:onClick="onTabClick"
+            android:tag="0"
+            android:layout_weight="1"/>
+        <View
+            android:layout_width="2dp"
+            android:layout_height="match_parent"
+            android:background="#000"/>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="书库"
+            android:background="@drawable/btn_tab"
+            android:tag="1"
+            android:onClick="onTabClick"
+            android:textAppearance="@android:style/TextAppearance.Large"
+            android:textStyle="bold"
+            android:layout_weight="1"/>
+        <View
+            android:layout_width="2dp"
+            android:layout_height="match_parent"
+            android:background="#000"/>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="应用"
+            android:background="@drawable/btn_tab"
+            android:tag="2"
+            android:onClick="onTabClick"
+            android:textAppearance="@android:style/TextAppearance.Large"
+            android:textStyle="bold"
+            android:layout_weight="1"/>
+    </LinearLayout>
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="#000"/>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <include layout="@layout/page_main"
+            android:id="@+id/page1"
+            android:visibility="visible"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+        <include layout="@layout/page_books"
+            android:id="@+id/page2"
+            android:layout_width="match_parent"
+            android:visibility="gone"
+            android:layout_height="match_parent"/>
+        <include layout="@layout/page_apps"
+            android:id="@+id/page3"
+            android:layout_width="match_parent"
+            android:visibility="gone"
+            android:layout_height="match_parent"/>
+    </FrameLayout>
+
+</LinearLayout>
