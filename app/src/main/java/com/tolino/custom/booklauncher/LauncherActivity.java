@@ -73,21 +73,8 @@ public class LauncherActivity extends Activity {
         }
 
     }
-
-    public static void collapseStatusBar(Context context) {
-        try {
-            Object statusBarManager = context.getSystemService("statusbar");
-            Method collapse;
-            if (Build.VERSION.SDK_INT <= 16) {
-                collapse = statusBarManager.getClass().getMethod("expand");
-
-            } else {
-                collapse = statusBarManager.getClass().getMethod("expandPanels");
-            }
-            collapse.invoke(statusBarManager);
-        } catch (Exception localException) {
-            localException.printStackTrace();
-        }
+    public void openToolBox(View view) {
+        startActivity(new Intent(this,ToolsActivity.class));
     }
 
 
@@ -257,17 +244,7 @@ public class LauncherActivity extends Activity {
         }
     }
 
-    public void onTorchClick(View view) {
-        Window window = LauncherActivity.this.getWindow();
-        WindowManager.LayoutParams lp = window.getAttributes();
-        if(lp.screenBrightness != WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL){
-            lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL;
-        }
-        else{
-            lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
-        }
-        window.setAttributes(lp);
-    }
+
 
     //endregion
 
@@ -355,6 +332,8 @@ public class LauncherActivity extends Activity {
             currentBookPage++;}
         showBookPage(currentBookPage);
     }
+
+
 
     class BookAdapter extends BaseAdapter{
         List<DBUtils.BookEntry>  adapterList;
@@ -458,9 +437,7 @@ public class LauncherActivity extends Activity {
                 }).setNegativeButton("不是",null).create().show();
     }
 
-    public void onNotificationClick(View view) {
-        collapseStatusBar(this);
-    }
+
 
     class BookListViewHolder
     {
@@ -786,7 +763,7 @@ public class LauncherActivity extends Activity {
                                 startActivity(launchIntent);
                             }catch (Exception ex){
                                 ex.printStackTrace();
-                                Toast.makeText(LauncherActivity.this, "无法启动这个应用", Toast.LENGTH_SHORT).show();
+                                AndroidUtils.Toast(LauncherActivity.this, "无法启动这个应用");
                             }
                         }
                     }).setNegativeButton("不是",null).create().show();

@@ -17,6 +17,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    packagingOptions {
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/DEPENDENCIES'
+    }
 }
 
 
@@ -29,4 +33,10 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'org.jetbrains:annotations-java5:15.0'
     compile files('libs/dom4j-1.6.1.jar')
+    compile files('libs/ftplet-api-1.1.1.jar')
+    compile files('libs/ftpserver-core-1.1.1.jar')
+    compile files('libs/log4j-1.2.17.jar')
+    compile files('libs/mina-core-2.0.16.jar')
+    compile files('libs/slf4j-api-1.7.21.jar')
+    compile files('libs/slf4j-log4j12-1.7.21.jar')
 }

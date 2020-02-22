@@ -69,24 +69,15 @@
         android:orientation="vertical"
         android:layout_margin="25dp"
         android:layout_gravity="right|bottom">
-
-        <ImageButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/button"
-            android:src="@drawable/ic_action_name"
-            android:padding="10dp"
-            android:onClick="onNotificationClick"
-            android:layout_marginBottom="10dp"
-            />
-        <ImageButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/button"
-            android:src="@drawable/ic_torch"
-            android:padding="10dp"
-            android:onClick="onTorchClick"
-            />
+<Button
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/button"
+    android:padding="10dp"
+    android:textColor="#000"
+    android:textSize="20sp"
+    android:onClick="openToolBox"
+    android:text="工具箱"/>
     </LinearLayout>
 
 

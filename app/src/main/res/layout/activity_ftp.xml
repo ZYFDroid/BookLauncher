@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_ftp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="com.tolino.custom.booklauncher.tools.FtpActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:layout_height="70dp">
+        <Button
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:onClick="onBackClick"
+            android:textSize="20sp"
+            android:background="@drawable/button"
+            android:layout_margin="10dp"
+            android:text="返回"
+            />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_weight="1"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="FTP传书"
+            android:textSize="40sp"
+            android:textColor="#000"
+            />
+
+        <Button
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:textSize="20sp"
+            android:onClick="showFtpIp"
+            android:background="@drawable/button"
+            android:layout_margin="10dp"
+            android:text="使用方式"
+            />
+
+    </LinearLayout>
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="#000"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:layout_weight="0.3">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="FTP状态"
+            android:textSize="40sp"
+            android:textColor="#000"
+            />
+
+        <ToggleButton
+            android:layout_width="220dp"
+            android:layout_height="80dp"
+            android:id="@+id/chkFtpSwitch"
+            android:textOff=" "
+            android:text=" "
+            android:keepScreenOn="true"
+            android:textOn=" "
+            android:background="@drawable/chk_switch"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:id="@+id/txtFtpAddress"
+            android:text="FTP已关闭"
+            android:textSize="20sp"
+            android:layout_margin="10dp"
+            android:textColor="#000"
+            />
+
+    </LinearLayout>
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#000"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="连接到WIFI后，打开开关，然后点击“使用方式”按钮"
+            android:textSize="20sp"
+            android:layout_margin="10dp"
+            android:textColor="#000"
+            />
+
+    </LinearLayout>
+</LinearLayout>
