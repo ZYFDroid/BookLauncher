@@ -33,6 +33,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.BaseAdapter;
+import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -429,14 +430,48 @@ public class LauncherActivity extends Activity {
         if(!canOperate()){
             showWaringMessage();return;
         }
+        new AlertDialog.Builder(LauncherActivity.this).setTitle("扫描方式").setItems(new String[]{"扫描/sdcard/Books","扫描自定义路径"}, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if(which==0){
+                    scanDefaultPath();
+                }
+                else{
+                    scanCustomPath();
+                }
+            }
+        }).create().show();
+    }
+
+    public void scanDefaultPath(){
         new AlertDialog.Builder(LauncherActivity.this).setTitle("扫描书籍").setMessage("是否开始扫描书籍?扫描时间取决于书籍的数量。")
                 .setPositiveButton("是的", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        scanBooks();
+                        scanBooks(bookRoot);
                     }
                 }).setNegativeButton("不是",null).create().show();
     }
+
+    public void scanCustomPath(){
+        inputPath();
+    }
+
+    public void inputPath(){
+        final EditText edt = new EditText(this);
+        edt.setText(bookRoot);
+        edt.setHint("输入路径");
+        new AlertDialog.Builder(LauncherActivity.this).setTitle("输入要扫描的路径").setView(edt)
+                .setPositiveButton("开始", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        scanBooks(edt.getText().toString());
+                    }
+                }).setNegativeButton("取消",null).create().show();
+    }
+
+
+
 
 
 
@@ -554,8 +589,8 @@ public class LauncherActivity extends Activity {
         }
     }
 
-    void scanBooks(){
-        AsyncTask<Void,String,String> scanTask = new AsyncTask<Void, String, String>() {
+    void scanBooks(String scanPath){
+        AsyncTask<String,String,String> scanTask = new AsyncTask<String, String, String>() {
 
             HashMap<String,String> pathToUUID = new HashMap<String, String>();
             List<DBUtils.BookEntry> bookEntries = new ArrayList<DBUtils.BookEntry>();
@@ -565,6 +600,9 @@ public class LauncherActivity extends Activity {
             List<String> bookPath = new ArrayList<String>();
             void rescurePath(String root){
                 File f = new File(root);
+                if(f==null || f.getName().startsWith(".")){
+                    return;
+                }
                 for(File subf : f.listFiles()){
                     if(subf.isDirectory()){
                         rescurePath(subf.getAbsolutePath());
@@ -590,85 +628,95 @@ public class LauncherActivity extends Activity {
             }
 
             @Override
-            protected String doInBackground(Void... params) {
-                publishProgress("正在扫描目录...");
-                delay(300);
-                rescurePath(bookRoot);
-                publishProgress("扫描到了"+bookPath.size()+"本书，"+path.size()+"个目录");
-                delay(500);
-                publishProgress("正在读取数据库...");
+            protected String doInBackground(String... params) {
+                try {
+                    publishProgress("正在扫描目录...");
+                    delay(300);
+                    rescurePath(params[0]);
+                    publishProgress("扫描到了" + bookPath.size() + "本书，" + path.size() + "个目录");
+                    delay(500);
+                    publishProgress("正在读取数据库...");
 
-                List<DBUtils.BookEntry> pathInDb = DBUtils.queryBooks("type=?",String.valueOf(DBUtils.BookEntry.TYPE_FOLDER));
-                for (DBUtils.BookEntry pid : pathInDb) {
-                    pathToUUID.put(pid.getPath(),pid.getUUID());
-                }
-                List<DBUtils.BookEntry> newPaths = new ArrayList<DBUtils.BookEntry>();
-                for (String p : path) {
-                    if(!pathToUUID.containsKey(p)){
-                        newPaths.add(DBUtils.BookEntry.createFolder("",p));
+                    List<DBUtils.BookEntry> pathInDb = DBUtils.queryBooks("type=?", String.valueOf(DBUtils.BookEntry.TYPE_FOLDER));
+                    for (DBUtils.BookEntry pid : pathInDb) {
+                        pathToUUID.put(pid.getPath(), pid.getUUID());
                     }
-                }
-                for (DBUtils.BookEntry pid : newPaths) {
-                    pathToUUID.put(pid.getPath(),pid.getUUID());
-                }
-                for (DBUtils.BookEntry pid : newPaths) {
-                    if(TextUtils.isEmpty(pid.getParentUUID())){
-                        String parentPath = new File(pid.getPath()).getParentFile().getAbsolutePath();
-                        pid.setParentUUID(pathToUUID.get(parentPath));
-                    }
-                }
-                folderEntries.addAll(newPaths);
-
-                List<DBUtils.BookEntry> bookInDb = DBUtils.queryBooks("type=?",String.valueOf(DBUtils.BookEntry.TYPE_BOOK));
-
-                List<String> bookPathInDb = new ArrayList<String>();
-                for (DBUtils.BookEntry bk :
-                        bookInDb) {
-                    bookPathInDb.add(bk.getPath());
-                }
-
-                List<String> newBookPathList = new ArrayList<String>();
-                for(String newBookPath : bookPath){
-                    if(!bookPathInDb.contains(newBookPath)){
-                        newBookPathList.add(newBookPath);
-                    }
-                }
-                publishProgress("找到"+newBookPathList.size()+"本新书。");
-                delay(500);
-                publishProgress("开始添加...");
-                delay(200);
-
-                int success=0,deleted=0;
-
-                for(int i=0;i<newBookPathList.size();i++){
-                    publishProgress("正在添加第"+(i+1)+"/"+newBookPathList.size()+"本书");
-                    try{
-                        File bf = new File(newBookPathList.get(i));
-                        String parentPath = bf.getParentFile().getAbsolutePath();
-                        TempBookInfo readinfo = readBookInfo(bf);
-
-                        DBUtils.BookEntry tmpEntry = DBUtils.BookEntry.createBook(pathToUUID.get(parentPath),readinfo.title,bf.getAbsolutePath());
-                        if(!new File(cacheCoverPath).exists()){
-                            new File(cacheCoverPath).mkdirs();
+                    List<DBUtils.BookEntry> newPaths = new ArrayList<DBUtils.BookEntry>();
+                    for (String p : path) {
+                        if (!pathToUUID.containsKey(p)) {
+                            newPaths.add(DBUtils.BookEntry.createFolder("", p));
                         }
-                        String coverPathName = cacheCoverPath+"/"+tmpEntry.getUUID()+".png";
-                        readinfo.cover.compress(Bitmap.CompressFormat.PNG,95,new FileOutputStream(coverPathName));
-                        bookEntries.add(tmpEntry);
-                        readinfo.cover.recycle();
-                        success++;
                     }
-                    catch (Exception ex){
-                        ex.printStackTrace();
+                    for (DBUtils.BookEntry pid : newPaths) {
+                        pathToUUID.put(pid.getPath(), pid.getUUID());
                     }
+                    for (DBUtils.BookEntry pid : newPaths) {
+                        if (TextUtils.isEmpty(pid.getParentUUID())) {
+                            String parentPath = new File(pid.getPath()).getParentFile().getAbsolutePath();
+                            String path2uuid = pathToUUID.get(parentPath);
+                            pid.setParentUUID(path2uuid != null ? path2uuid : DBUtils.BookEntry.ROOT_UUID);
+                        }
+                    }
+                    folderEntries.addAll(newPaths);
+
+                    List<DBUtils.BookEntry> bookInDb = DBUtils.queryBooks("type=?", String.valueOf(DBUtils.BookEntry.TYPE_BOOK));
+
+                    List<String> bookPathInDb = new ArrayList<String>();
+                    for (DBUtils.BookEntry bk :
+                            bookInDb) {
+                        bookPathInDb.add(bk.getPath());
+                    }
+
+                    List<String> newBookPathList = new ArrayList<String>();
+                    for (String newBookPath : bookPath) {
+                        if (!bookPathInDb.contains(newBookPath)) {
+                            newBookPathList.add(newBookPath);
+                        }
+                    }
+                    publishProgress("找到" + newBookPathList.size() + "本新书。");
+                    delay(500);
+                    publishProgress("开始添加...");
+                    delay(200);
+
+                    int success = 0, deleted = 0;
+
+                    for (int i = 0; i < newBookPathList.size(); i++) {
+                        publishProgress("正在添加第" + (i + 1) + "/" + newBookPathList.size() + "本书");
+                        try {
+                            File bf = new File(newBookPathList.get(i));
+                            String parentPath = bf.getParentFile().getAbsolutePath();
+                            TempBookInfo readinfo = readBookInfo(bf);
+                            String path2uuid = pathToUUID.get(parentPath);
+                            DBUtils.BookEntry tmpEntry = DBUtils.BookEntry.createBook(path2uuid != null ? path2uuid : DBUtils.BookEntry.ROOT_UUID, readinfo.title, bf.getAbsolutePath());
+                            if (!new File(cacheCoverPath).exists()) {
+                                new File(cacheCoverPath).mkdirs();
+                            }
+                            String coverPathName = cacheCoverPath + "/" + tmpEntry.getUUID() + ".png";
+                            readinfo.cover.compress(Bitmap.CompressFormat.PNG, 95, new FileOutputStream(coverPathName));
+                            bookEntries.add(tmpEntry);
+                            readinfo.cover.recycle();
+                            success++;
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                    publishProgress("添加完成, 正在保存到数据库...");
+                    delay(300);
+                    DBUtils.InsertBooks(folderEntries);
+                    DBUtils.InsertBooks(bookEntries);
+                    publishProgress("正在查找已删除或移动的书籍...");
+                    delay(300);
+                    deleted = cleanDB();
+                    int removeEmptyPath = cleanEmptyDir();
+                    while (removeEmptyPath>0){
+                        removeEmptyPath = cleanEmptyDir();
+                    }
+                    return "添加了" + success + "本书，移除了" + deleted + "本书";
+                }catch (Exception ex){
+                    ex.printStackTrace();
+                    return "扫描失败："+ ex.toString();
+
                 }
-                publishProgress("添加完成, 正在保存到数据库...");
-                delay(300);
-                DBUtils.InsertBooks(folderEntries);
-                DBUtils.InsertBooks(bookEntries);
-                publishProgress("正在查找已删除或移动的书籍...");
-                delay(300);
-                deleted = cleanDB();
-                return "添加了"+success+"本书，移除了"+deleted+"本书";
             }
 
             int cleanDB(){
@@ -682,12 +730,6 @@ public class LauncherActivity extends Activity {
                             deleted++;
                         }
                     }
-                    else{
-                        if(bk.getUUID().equals(DBUtils.BookEntry.ROOT_UUID)){continue;}
-                        if(DBUtils.getCount("parent_uuid=?",bk.getUUID())==0){
-                            deletionUUIDs.add(bk.getUUID());
-                        }
-                    }
                 }
                 for (String delete : deletionUUIDs) {
                     DBUtils.execSql("delete from library where uuid=?",delete);
@@ -695,6 +737,23 @@ public class LauncherActivity extends Activity {
                     if(imgCover.exists()){
                         imgCover.delete();
                     }
+                }
+                return deleted;
+            }
+
+            int cleanEmptyDir(){
+                int deleted = 0;
+                List<String> deletionUUIDs = new ArrayList<String>();
+                List<DBUtils.BookEntry> bookInDb = DBUtils.queryBooks("type=?", String.valueOf(DBUtils.BookEntry.TYPE_FOLDER));
+                for (DBUtils.BookEntry bk : bookInDb) {
+                    if(bk.getUUID().equals(DBUtils.BookEntry.ROOT_UUID)){continue;}
+                    if(DBUtils.getCount("parent_uuid=?",bk.getUUID())==0){
+                        deletionUUIDs.add(bk.getUUID());
+                    }
+                }
+                for (String delete : deletionUUIDs) {
+                    DBUtils.execSql("delete from library where uuid=?",delete);
+                    deleted++;
                 }
                 return deleted;
             }
@@ -722,7 +781,7 @@ public class LauncherActivity extends Activity {
                 new AlertDialog.Builder(LauncherActivity.this).setTitle("扫描完成").setMessage(s)
                         .setPositiveButton("好", null).create().show();
             }
-        }.execute();
+        }.execute(scanPath);
     }
 
 
