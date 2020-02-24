@@ -18,6 +18,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.provider.Settings;
 import android.text.Layout;
@@ -55,14 +56,14 @@ import java.util.List;
 
 
 public class LauncherActivity extends Activity {
-
-    private static final String bookRoot = "/mnt/sdcard/Books";
+    public static String bookRoot = "/mnt/sdcard/Books";
 
     void showHide(int id,boolean visible){
         findViewById(id).setVisibility(visible ? View.VISIBLE : View.GONE);
     }
 
     boolean canOperate(){
+
         try {
             if(!new File(bookRoot).exists()){
                 new File(bookRoot).mkdirs();
@@ -71,7 +72,6 @@ public class LauncherActivity extends Activity {
         }catch (Exception ex){
             return false;
         }
-
     }
     public void openToolBox(View view) {
         startActivity(new Intent(this,ToolsActivity.class));
@@ -86,6 +86,7 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        bookRoot = new File(Environment.getExternalStorageDirectory(),"Books").getAbsolutePath();
         cacheCoverPath = getFilesDir().getAbsolutePath();
         DBUtils.init(getApplicationContext());
         setContentView(R.layout.activity_launcher);

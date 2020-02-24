@@ -8,6 +8,7 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
+import com.tolino.custom.booklauncher.LauncherActivity;
 import com.tolino.custom.booklauncher.R;
 import com.tolino.custom.booklauncher.utils.AndroidUtils;
 
@@ -130,7 +131,7 @@ public class FtpActivity extends Activity {
         serverFactory.addListener("default",listenerFactory.createListener());
         BaseUser user = new BaseUser();
         user.setName("anonymous");
-        user.setHomeDirectory(Environment.getExternalStorageDirectory().getAbsolutePath()+"/Books/");
+        user.setHomeDirectory(LauncherActivity.bookRoot);
         List<Authority> authorities = new ArrayList<Authority>();
         authorities.add(new WritePermission());
         user.setAuthorities(authorities);
