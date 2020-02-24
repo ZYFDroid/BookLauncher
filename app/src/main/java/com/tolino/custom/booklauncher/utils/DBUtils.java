@@ -7,6 +7,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import com.tolino.custom.booklauncher.LauncherActivity;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +19,7 @@ import java.util.UUID;
  */
 
 public class DBUtils extends SQLiteOpenHelper {
-    private static final int SQL_VERSION = 1;
+    private static final int SQL_VERSION = 2;
     private static final String TAG  = "DBUtils";
     private DBUtils(Context context) {
         super(context, "bookdata2", null, SQL_VERSION);
@@ -36,12 +38,18 @@ public class DBUtils extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        int curversion = oldVersion;
+        int curversion = oldVersion+1;
         while (curversion<=newVersion){
             if(curversion==1){
                 //type=0: this is a book; type=1: this is a folder/bookshelf, query sub uuid for more books. the Root uuid is 0;
                 db.execSQL("create table library(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,uuid text,type integer,parent_uuid text,display_name text,path text,lastopen bigint default 0)");
-                db.execSQL("insert into library(uuid,type,display_name,path) values(?,?,?,?)",new Object[]{"0",1,"图书馆","/mnt/sdcard/Books"});
+                db.execSQL("insert into library(uuid,type,display_name,path) values(?,?,?,?)",new Object[]{"0",1,"图书馆",LauncherActivity.bookRoot});
+                Log.d(TAG, "onUpgrade: now execute version "+curversion);
+            }
+            if(curversion==2){
+                //type=0: this is a book; type=1: this is a folder/bookshelf, query sub uuid for more books. the Root uuid is 0;
+                db.execSQL("delete from library where 1=1");
+                db.execSQL("insert into library(uuid,type,display_name,path) values(?,?,?,?)",new Object[]{"0",1,"图书馆",LauncherActivity.bookRoot});
                 Log.d(TAG, "onUpgrade: now execute version "+curversion);
             }
             curversion++;

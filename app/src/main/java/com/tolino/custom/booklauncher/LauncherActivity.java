@@ -480,7 +480,7 @@ public class LauncherActivity extends Activity {
 //        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);//设置标记
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.setAction(Intent.ACTION_VIEW);//动作，查看
-        intent.setDataAndType(Uri.fromFile(file), "application/epub");//设置类型
+        intent.setDataAndType(Uri.fromFile(file), "*/*");//设置类型
         startActivity(intent);
     }
 
